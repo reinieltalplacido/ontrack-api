@@ -1,48 +1,68 @@
 <?php
-// backend/api/tasks/create.php
-require_once __DIR__ . '/../../config/db.php';
+declare(strict_types=1);
+
+require_once __DIR__ . '/../common.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed. Use POST.']);
-    exit();
+    respond(405, ['success' => false, 'message' => 'Method not allowed.']);
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$input = read_json_body();
+$userId = filter_var($input['user_id'] ?? null, FILTER_VALIDATE_INT);
+$studentNo = trim((string)($input['student_no'] ?? ''));
+$title = trim((string)($input['title'] ?? ''));
+$description = trim((string)($input['description'] ?? ''));
+$deadline = !empty($input['deadline']) ? $input['deadline'] : null;
+$priority = in_array($input['priority'] ?? '', ['low', 'medium', 'high']) ? $input['priority'] : 'medium';
 
-$user_id     = intval($input['user_id'] ?? 0);
-$title       = trim($input['title'] ?? '');
-$description = trim($input['description'] ?? '');
-$deadline    = !empty($input['deadline']) ? $input['deadline'] : null;
-$priority    = in_array($input['priority'] ?? '', ['low', 'medium', 'high']) ? $input['priority'] : 'medium';
-
-if ($user_id <= 0 || empty($title)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'User ID and Task Title are required.']);
-    exit();
+if (!$userId && $studentNo === '') {
+    respond(400, ['success' => false, 'message' => 'user_id or student_no is required.']);
+}
+if ($title === '') {
+    respond(422, ['success' => false, 'message' => 'Task title is required.']);
 }
 
 try {
-    $stmt = $pdo->prepare("INSERT INTO tasks (user_id, title, description, deadline, priority, status) VALUES (:uid, :title, :desc, :deadline, :priority, 'pending')");
-    $stmt->execute([
-        'uid'      => $user_id,
+    $pdo = get_db_connection();
+
+    // Find student
+    if ($userId) {
+        $stmt = $pdo->prepare('SELECT id, student_no FROM students WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $userId]);
+    } else {
+        $stmt = $pdo->prepare('SELECT id, student_no FROM students WHERE student_no = :sno LIMIT 1');
+        $stmt->execute(['sno' => $studentNo]);
+    }
+    $student = $stmt->fetch();
+    $sId = $student ? (int)$student['id'] : ($userId ?? 1);
+    $sNo = $student ? $student['student_no'] : ($studentNo !== '' ? $studentNo : '2026-0001');
+
+    $ins = $pdo->prepare(
+        "INSERT INTO tasks (user_id, student_no, title, description, deadline, priority, status)
+         VALUES (:uid, :sno, :title, :desc, :deadline, :priority, 'pending')"
+    );
+    $ins->execute([
+        'uid'      => $sId,
+        'sno'      => $sNo,
         'title'    => $title,
-        'desc'     => $description,
+        'desc'     => $description !== '' ? $description : null,
         'deadline' => $deadline,
-        'priority' => $priority
+        'priority' => $priority,
     ]);
 
-    $newId = $pdo->lastInsertId();
-    $fetchStmt = $pdo->prepare("SELECT * FROM tasks WHERE id = :id");
-    $fetchStmt->execute(['id' => $newId]);
+    $newId = (int)$pdo->lastInsertId();
+    $fetchTask = $pdo->prepare('SELECT * FROM tasks WHERE id = :id');
+    $fetchTask->execute(['id' => $newId]);
+    $created = $fetchTask->fetch();
+    $created['id'] = (int)$created['id'];
+    $created['user_id'] = (int)($created['user_id'] ?? $sId);
 
-    echo json_encode([
+    respond(201, [
         'success' => true,
-        'message' => 'Task created successfully',
-        'task'    => $fetchStmt->fetch()
+        'message' => 'Task created successfully.',
+        'task'    => $created,
     ]);
-
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    respond(500, ['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
+

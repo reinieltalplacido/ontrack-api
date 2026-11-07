@@ -1,34 +1,29 @@
 <?php
-// backend/api/tasks/delete.php
-require_once __DIR__ . '/../../config/db.php';
+declare(strict_types=1);
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'DELETE') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed. Use POST.']);
-    exit();
+require_once __DIR__ . '/../common.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    respond(405, ['success' => false, 'message' => 'Method not allowed.']);
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$task_id = intval($input['task_id'] ?? ($_GET['id'] ?? 0));
+$input = read_json_body();
+$taskId = filter_var($input['task_id'] ?? ($input['id'] ?? null), FILTER_VALIDATE_INT);
 
-if ($task_id <= 0) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Valid task_id is required.']);
-    exit();
+if (!$taskId) {
+    respond(400, ['success' => false, 'message' => 'Valid task_id is required.']);
 }
 
 try {
-    $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = :id");
-    $stmt->execute(['id' => $task_id]);
+    $pdo = get_db_connection();
+    $stmt = $pdo->prepare('DELETE FROM tasks WHERE id = :id');
+    $stmt->execute(['id' => $taskId]);
 
-    echo json_encode([
+    respond(200, [
         'success' => true,
-        'message' => 'Task deleted successfully',
-        'task_id' => $task_id
+        'message' => 'Task deleted successfully.',
     ]);
-
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    respond(500, ['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
 

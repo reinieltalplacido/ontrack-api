@@ -1,62 +1,80 @@
 <?php
-// backend/api/auth/login.php
-require_once __DIR__ . '/../../config/db.php';
+declare(strict_types=1);
+
+require_once __DIR__ . '/../common.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed. Use POST.']);
-    exit();
+    respond(405, ['success' => false, 'message' => 'Method not allowed.']);
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$body = read_json_body();
+$identifier = trim((string)($body['identifier'] ?? ($body['email'] ?? ($body['student_id'] ?? ($body['student_no'] ?? '')))));
+$password = trim((string)($body['password'] ?? ''));
 
-$identifier = trim($input['email'] ?? $input['student_id'] ?? $input['identifier'] ?? '');
-$password = trim($input['password'] ?? '');
-
-if (empty($identifier) || empty($password)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Student ID or Email and password are required.']);
-    exit();
+if ($identifier === '' || $password === '') {
+    respond(400, ['success' => false, 'message' => 'Student ID / Email and password are required.']);
 }
 
 try {
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email OR student_id = :sid LIMIT 1");
-    $stmt->execute(['email' => $identifier, 'sid' => $identifier]);
+    $pdo = get_db_connection();
+
+    // 1. Check students table
+    $stmt = $pdo->prepare('SELECT * FROM students WHERE student_no = :id1 OR email = :id2 LIMIT 1');
+    $stmt->execute(['id1' => $identifier, 'id2' => $identifier]);
     $user = $stmt->fetch();
 
-    if (!$user) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Invalid email or password.']);
-        exit();
+    if ($user) {
+        $passwordMatches = password_verify($password, (string)$user['password']) || ($password === $user['password']);
+        if (!$passwordMatches) {
+            respond(401, ['success' => false, 'message' => 'Invalid email or password.']);
+        }
+
+        $formattedUser = format_student_user($user);
+        $token = bin2hex(random_bytes(24));
+
+        respond(200, [
+            'success' => true,
+            'role'    => 'student',
+            'message' => 'Login successful',
+            'user'    => $formattedUser,
+            'token'   => $token,
+        ]);
     }
 
-    // Verify Password (supports bcrypt hash or plain text fallback for demo setup)
-    $passwordValid = password_verify($password, $user['password']) || ($password === $user['password']);
+    // 2. Check professors table (coordinator/supervisor logging in from main portal)
+    $pStmt = $pdo->prepare('SELECT * FROM professors WHERE email = :p1 OR employee_id = :p2 LIMIT 1');
+    $pStmt->execute(['p1' => $identifier, 'p2' => $identifier]);
+    $prof = $pStmt->fetch();
 
-    if (!$passwordValid) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Invalid email or password.']);
-        exit();
+    if ($prof) {
+        $passwordMatches = password_verify($password, (string)$prof['password']) || ($password === $prof['password']);
+        if (!$passwordMatches) {
+            respond(401, ['success' => false, 'message' => 'Invalid email or password.']);
+        }
+
+        $formattedProf = format_professor_user($prof);
+        $token = 'prof_' . bin2hex(random_bytes(24));
+
+        respond(200, [
+            'success'   => true,
+            'role'      => 'professor',
+            'message'   => 'Coordinator login successful',
+            'professor' => $formattedProf,
+            'user'      => [
+                'id'             => (int)$prof['id'],
+                'student_id'     => $prof['employee_id'],
+                'full_name'      => $prof['full_name'],
+                'email'          => $prof['email'],
+                'role'           => 'admin',
+                'course_section' => $prof['assigned_section'] ?? 'BSIT 4-A',
+            ],
+            'token'     => $token,
+        ]);
     }
 
-    // Compute total accumulated hours
-    $hoursStmt = $pdo->prepare("SELECT COALESCE(SUM(total_hours), 0) AS total FROM attendance_logs WHERE user_id = :uid AND status = 'completed'");
-    $hoursStmt->execute(['uid' => $user['id']]);
-    $hoursRow = $hoursStmt->fetch();
-    $rendered_hours = floatval($hoursRow['total'] ?? 0);
-
-    // Remove sensitive password hash from response
-    unset($user['password']);
-    $user['rendered_hours'] = $rendered_hours;
-
-    echo json_encode([
-        'success' => true,
-        'message' => 'Login successful',
-        'user' => $user,
-        'token' => base64_encode($user['id'] . ':' . time())
-    ]);
+    // 3. Neither student nor professor found
+    respond(401, ['success' => false, 'message' => 'Invalid email/student ID or password.']);
 
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    respond(500, ['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

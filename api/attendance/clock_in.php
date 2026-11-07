@@ -1,92 +1,103 @@
 <?php
-// backend/api/attendance/clock_in.php
-require_once __DIR__ . '/../../config/db.php';
+declare(strict_types=1);
+
+require_once __DIR__ . '/../common.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed. Use POST.']);
-    exit();
+    respond(405, ['success' => false, 'message' => 'Method not allowed.']);
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$input = read_json_body();
+$userId = filter_var($input['user_id'] ?? null, FILTER_VALIDATE_INT);
+$studentNo = trim((string)($input['student_no'] ?? ''));
 
-$user_id       = intval($input['user_id'] ?? ($_POST['user_id'] ?? 0));
-$latitude      = isset($input['latitude']) ? floatval($input['latitude']) : (isset($_POST['latitude']) ? floatval($_POST['latitude']) : null);
-$longitude     = isset($input['longitude']) ? floatval($input['longitude']) : (isset($_POST['longitude']) ? floatval($_POST['longitude']) : null);
-$location_name = trim($input['location_name'] ?? ($_POST['location_name'] ?? 'Assigned Workplace (GPS Validated)'));
-$photo_base64  = $input['photo_base64'] ?? ($_POST['photo_base64'] ?? null);
-
-if ($user_id <= 0) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Valid user_id is required.']);
-    exit();
+if (!$userId && $studentNo === '') {
+    respond(400, ['success' => false, 'message' => 'user_id or student_no is required.']);
 }
 
 try {
-    // 1. Check if user already has an active (ongoing) clock-in today
-    $checkStmt = $pdo->prepare("SELECT id, time_in FROM attendance_logs WHERE user_id = :uid AND log_date = CURRENT_DATE() AND status = 'ongoing' LIMIT 1");
-    $checkStmt->execute(['uid' => $user_id]);
-    $existing = $checkStmt->fetch();
+    $pdo = get_db_connection();
 
-    if ($existing) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'You are already clocked in today at ' . substr($existing['time_in'], 0, 5),
-            'log_id' => $existing['id']
-        ]);
-        exit();
+    // Find student
+    if ($userId) {
+        $stmt = $pdo->prepare('SELECT id, student_no FROM students WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $userId]);
+    } else {
+        $stmt = $pdo->prepare('SELECT id, student_no FROM students WHERE student_no = :sno LIMIT 1');
+        $stmt->execute(['sno' => $studentNo]);
+    }
+    $student = $stmt->fetch();
+
+    if (!$student) {
+        respond(404, ['success' => false, 'message' => 'Student not found.']);
     }
 
-    // 2. Handle Photo Upload (Base64 from Capacitor Camera)
-    $photo_url = null;
-    if (!empty($photo_base64)) {
-        $uploadsDir = __DIR__ . '/../../uploads';
+    $sId = (int)$student['id'];
+    $sNo = $student['student_no'];
+
+    // Check if ongoing today
+    $check = $pdo->prepare("SELECT id, time_in FROM attendance_logs WHERE (user_id = :uid OR student_no = :sno) AND log_date = CURRENT_DATE() AND status = 'ongoing' LIMIT 1");
+    $check->execute(['uid' => $sId, 'sno' => $sNo]);
+    $existing = $check->fetch();
+
+    if ($existing) {
+        respond(409, [
+            'success' => false,
+            'message' => 'You are already clocked in today at ' . substr($existing['time_in'], 0, 5),
+            'log_id'  => (int)$existing['id'],
+        ]);
+    }
+
+    $latitude      = isset($input['latitude']) ? floatval($input['latitude']) : null;
+    $longitude     = isset($input['longitude']) ? floatval($input['longitude']) : null;
+    $locationName  = trim($input['location_name'] ?? 'Assigned Workplace (GPS Validated)');
+    $photoBase64   = $input['photo_base64'] ?? null;
+    $photoUrl      = null;
+
+    if (!empty($photoBase64)) {
+        $uploadsDir = dirname(__DIR__, 2) . '/uploads';
         if (!is_dir($uploadsDir)) {
             mkdir($uploadsDir, 0777, true);
         }
-
-        // Clean base64 header if present (e.g. data:image/jpeg;base64,...)
-        if (preg_match('/^data:image\/(\w+);base64,/', $photo_base64, $type)) {
-            $photo_base64 = substr($photo_base64, strpos($photo_base64, ',') + 1);
+        if (preg_match('/^data:image\/(\w+);base64,/', $photoBase64)) {
+            $photoBase64 = substr($photoBase64, strpos($photoBase64, ',') + 1);
         }
-        $decodedData = base64_decode($photo_base64);
-        if ($decodedData !== false) {
-            $fileName = 'proof_' . $user_id . '_' . time() . '.jpg';
-            $filePath = $uploadsDir . '/' . $fileName;
-            file_put_contents($filePath, $decodedData);
-            $photo_url = 'uploads/' . $fileName;
+        $decoded = base64_decode($photoBase64);
+        if ($decoded !== false) {
+            $fileName = 'proof_' . preg_replace('/[^a-zA-Z0-9]/', '_', $sNo) . '_' . time() . '.jpg';
+            file_put_contents($uploadsDir . '/' . $fileName, $decoded);
+            $photoUrl = 'uploads/' . $fileName;
         }
     }
 
-    // 3. Insert Clock-In Log
-    $sql = "INSERT INTO attendance_logs (
-        user_id, log_date, time_in, latitude, longitude, location_name, photo_url, status
-    ) VALUES (
-        :user_id, CURRENT_DATE(), CURRENT_TIME(), :latitude, :longitude, :location_name, :photo_url, 'ongoing'
-    )";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        'user_id'       => $user_id,
-        'latitude'      => $latitude,
-        'longitude'     => $longitude,
-        'location_name' => $location_name,
-        'photo_url'     => $photo_url
+    $ins = $pdo->prepare(
+        'INSERT INTO attendance_logs (user_id, student_no, log_date, time_in, latitude, longitude, location_name, photo_url, status)
+         VALUES (:uid, :sno, CURRENT_DATE(), CURRENT_TIME(), :lat, :lng, :loc, :photo, \'ongoing\')'
+    );
+    $ins->execute([
+        'uid'   => $sId,
+        'sno'   => $sNo,
+        'lat'   => $latitude,
+        'lng'   => $longitude,
+        'loc'   => $locationName,
+        'photo' => $photoUrl,
     ]);
 
-    $newLogId = $pdo->lastInsertId();
+    $newId = (int)$pdo->lastInsertId();
+    $fetchLog = $pdo->prepare('SELECT * FROM attendance_logs WHERE id = :id');
+    $fetchLog->execute(['id' => $newId]);
+    $log = $fetchLog->fetch();
 
-    $logStmt = $pdo->prepare("SELECT * FROM attendance_logs WHERE id = :id");
-    $logStmt->execute(['id' => $newLogId]);
-    $log = $logStmt->fetch();
+    $log['id'] = (int)$log['id'];
+    $log['user_id'] = (int)($log['user_id'] ?? $sId);
+    $log['total_hours'] = floatval($log['total_hours'] ?? 0);
 
-    echo json_encode([
+    respond(201, [
         'success' => true,
-        'message' => 'Time-in recorded successfully with location & photo proof!',
-        'log'     => $log
+        'message' => 'Time-in recorded successfully with GPS verification!',
+        'log'     => $log,
     ]);
-
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    respond(500, ['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
+

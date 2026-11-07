@@ -1,99 +1,75 @@
 <?php
-// backend/api/auth/update_profile.php
-require_once __DIR__ . '/../../config/db.php';
+declare(strict_types=1);
+
+require_once __DIR__ . '/../common.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed. Use POST.']);
-    exit();
+    respond(405, ['success' => false, 'message' => 'Method not allowed.']);
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$body = read_json_body();
+$userId = filter_var($body['user_id'] ?? ($body['id'] ?? null), FILTER_VALIDATE_INT);
+$studentNo = trim((string)($body['student_id'] ?? ($body['student_no'] ?? '')));
 
-$user_id        = intval($input['user_id'] ?? 0);
-$full_name      = trim($input['full_name'] ?? '');
-$course_section = trim($input['course_section'] ?? '');
-$school_campus  = trim($input['school_campus'] ?? '');
-$company_name   = trim($input['company_name'] ?? '');
-$adviser_name   = trim($input['adviser_name'] ?? '');
-$target_date    = !empty($input['target_date']) ? $input['target_date'] : null;
-$required_hours = isset($input['required_hours']) ? intval($input['required_hours']) : null;
-$new_password   = trim($input['new_password'] ?? '');
-
-if ($user_id <= 0) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Valid user_id is required.']);
-    exit();
+if (!$userId && $studentNo === '') {
+    respond(400, ['success' => false, 'message' => 'User ID or Student ID is required.']);
 }
 
 try {
-    // Check if user exists
-    $checkStmt = $pdo->prepare("SELECT * FROM users WHERE id = :id LIMIT 1");
-    $checkStmt->execute(['id' => $user_id]);
-    $user = $checkStmt->fetch();
+    $pdo = get_db_connection();
 
-    if (!$user) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'User not found.']);
-        exit();
+    // Find student
+    if ($userId) {
+        $stmt = $pdo->prepare('SELECT * FROM students WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $userId]);
+    } else {
+        $stmt = $pdo->prepare('SELECT * FROM students WHERE student_no = :sno LIMIT 1');
+        $stmt->execute(['sno' => $studentNo]);
     }
+    $current = $stmt->fetch();
 
-    $updates = [];
-    $params = ['id' => $user_id];
-
-    if (!empty($full_name)) {
-        $updates[] = "full_name = :full_name";
-        $params['full_name'] = $full_name;
-    }
-    if (!empty($course_section)) {
-        $updates[] = "course_section = :course_section";
-        $params['course_section'] = $course_section;
-    }
-    if (!empty($school_campus)) {
-        $updates[] = "school_campus = :school_campus";
-        $params['school_campus'] = $school_campus;
-    }
-    if (!empty($company_name)) {
-        $updates[] = "company_name = :company_name";
-        $params['company_name'] = $company_name;
-    }
-    if (!empty($adviser_name)) {
-        $updates[] = "adviser_name = :adviser_name";
-        $params['adviser_name'] = $adviser_name;
-    }
-    if (!empty($target_date)) {
-        $updates[] = "target_date = :target_date";
-        $params['target_date'] = $target_date;
-    }
-    if ($required_hours !== null && $required_hours > 0) {
-        $updates[] = "required_hours = :required_hours";
-        $params['required_hours'] = $required_hours;
-    }
-    if (!empty($new_password)) {
-        $updates[] = "password = :password";
-        $params['password'] = password_hash($new_password, PASSWORD_BCRYPT);
+    if (!$current) {
+        respond(404, ['success' => false, 'message' => 'Student not found.']);
     }
 
-    if (!empty($updates)) {
-        $sql = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = :id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-    }
+    $fullName      = trim((string)($body['full_name'] ?? $current['full_name']));
+    $email         = trim((string)($body['email'] ?? $current['email']));
+    $courseSection = trim((string)($body['course_section'] ?? ($current['course_section'] ?? 'BSIT 4-A')));
+    $schoolCampus  = trim((string)($body['school_campus'] ?? ($current['school_campus'] ?? 'NEUST - Sumacab Campus')));
+    $companyName   = trim((string)($body['company_name'] ?? $current['company_name']));
+    $adviserName   = trim((string)($body['adviser_name'] ?? $current['adviser_name']));
+    $adviserEmail  = trim((string)($body['adviser_email'] ?? $current['adviser_email']));
+    $targetDate    = !empty($body['target_date']) ? $body['target_date'] : $current['target_date'];
+    $requiredHours = isset($body['required_hours']) ? intval($body['required_hours']) : intval($current['required_hours']);
 
-    // Return updated user profile
-    $fetchStmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
-    $fetchStmt->execute(['id' => $user_id]);
-    $updatedUser = $fetchStmt->fetch();
-    unset($updatedUser['password']);
-
-    echo json_encode([
-        'success' => true,
-        'message' => 'Profile updated successfully!',
-        'user'    => $updatedUser
+    $upStmt = $pdo->prepare(
+        'UPDATE students
+         SET full_name = :fn, email = :em, course_section = :cs, school_campus = :sc, company_name = :cn, adviser_name = :an, adviser_email = :ae, target_date = :td, required_hours = :rh
+         WHERE id = :id'
+    );
+    $upStmt->execute([
+        'fn' => $fullName,
+        'em' => $email,
+        'cs' => $courseSection,
+        'sc' => $schoolCampus,
+        'cn' => $companyName,
+        'an' => $adviserName,
+        'ae' => $adviserEmail,
+        'td' => $targetDate,
+        'rh' => $requiredHours,
+        'id' => $current['id'],
     ]);
 
+    $fetchUpdated = $pdo->prepare('SELECT * FROM students WHERE id = :id');
+    $fetchUpdated->execute(['id' => $current['id']]);
+    $updated = $fetchUpdated->fetch();
+
+    respond(200, [
+        'success' => true,
+        'message' => 'Profile updated successfully.',
+        'user'    => format_student_user($updated),
+    ]);
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    respond(500, ['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
 

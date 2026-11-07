@@ -1,0 +1,32 @@
+@baseUrl = http://localhost/ionic-php-students-api/api/students.php
+
+### List all students
+GET {{baseUrl}}
+
+### Get one student
+GET {{baseUrl}}?id=1
+
+### Create student
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "student_no": "2026-0100",
+  "full_name": "Ana Example",
+  "course": "BSIT",
+  "year_level": 1
+}
+
+### Update student
+PUT {{baseUrl}}?id=1
+Content-Type: application/json
+
+{
+  "student_no": "2026-0001",
+  "full_name": "Juan Dela Cruz Updated",
+  "course": "BSIT",
+  "year_level": 2
+}
+
+### Delete student
+DELETE {{baseUrl}}?id=3

@@ -1,84 +1,110 @@
 <?php
-// backend/api/dashboard/stats.php
-require_once __DIR__ . '/../../config/db.php';
+declare(strict_types=1);
 
-$user_id = intval($_GET['user_id'] ?? 0);
+require_once __DIR__ . '/../common.php';
 
-if ($user_id <= 0) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Missing or invalid user_id parameter.']);
-    exit();
+$userId = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
+$studentNo = trim((string)($_GET['student_no'] ?? ''));
+
+if (!$userId && $studentNo === '') {
+    respond(400, ['success' => false, 'message' => 'user_id or student_no query parameter is required.']);
 }
 
 try {
-    // 1. Get User Profile & Targets
-    $uStmt = $pdo->prepare("SELECT id, full_name, student_id, required_hours, target_date, company_name FROM users WHERE id = :id");
-    $uStmt->execute(['id' => $user_id]);
-    $user = $uStmt->fetch();
+    $pdo = get_db_connection();
 
-    if (!$user) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Student not found.']);
-        exit();
+    if ($userId) {
+        $sStmt = $pdo->prepare('SELECT * FROM students WHERE id = :id LIMIT 1');
+        $sStmt->execute(['id' => $userId]);
+    } else {
+        $sStmt = $pdo->prepare('SELECT * FROM students WHERE student_no = :sno LIMIT 1');
+        $sStmt->execute(['sno' => $studentNo]);
+    }
+    $student = $sStmt->fetch();
+
+    if (!$student) {
+        respond(404, ['success' => false, 'message' => 'Student not found.']);
     }
 
-    $required_hours = floatval($user['required_hours'] ?? 486);
+    $requiredHours = floatval($student['required_hours'] ?? 486);
+    $sNo = $student['student_no'];
+    $sId = (int)$student['id'];
 
-    // 2. Compute Accumulated Completed Hours
-    $hStmt = $pdo->prepare("SELECT COALESCE(SUM(total_hours), 0) AS total_accumulated, COUNT(id) AS total_days FROM attendance_logs WHERE user_id = :id AND status = 'completed'");
-    $hStmt->execute(['id' => $user_id]);
-    $hRow = $hStmt->fetch();
-    $accumulated_hours = floatval($hRow['total_accumulated']);
-    $total_days = intval($hRow['total_days']);
+    // Fetch logs
+    $lStmt = $pdo->prepare('SELECT * FROM attendance_logs WHERE user_id = :uid OR student_no = :sno ORDER BY log_date DESC, time_in DESC');
+    $lStmt->execute(['uid' => $sId, 'sno' => $sNo]);
+    $logs = $lStmt->fetchAll();
 
-    $remaining_hours = max(0, $required_hours - $accumulated_hours);
-    $completion_percent = $required_hours > 0 ? round(($accumulated_hours / $required_hours) * 100, 1) : 0;
-    if ($completion_percent > 100) $completion_percent = 100;
+    $accumulatedHours = 0.0;
+    $todayLog = null;
+    $isClockedIn = false;
+    $todayStr = date('Y-m-d');
+    $distinctDates = [];
 
-    // 3. Days Remaining until Target Completion Date
-    $days_remaining = 0;
-    if (!empty($user['target_date'])) {
+    foreach ($logs as $log) {
+        if ($log['status'] === 'completed') {
+            $accumulatedHours += floatval($log['total_hours']);
+        }
+        $distinctDates[$log['log_date']] = true;
+        if ($log['log_date'] === $todayStr && $todayLog === null) {
+            $todayLog = $log;
+            if ($log['status'] === 'ongoing') {
+                $isClockedIn = true;
+            }
+        }
+    }
+
+    $accumulatedHours = round($accumulatedHours, 2);
+    $remainingHours = max(0, round($requiredHours - $accumulatedHours, 2));
+    $completionPercent = $requiredHours > 0 ? round(($accumulatedHours / $requiredHours) * 100, 1) : 0;
+    if ($completionPercent > 100) $completionPercent = 100;
+
+    // Days remaining
+    $daysRemaining = 0;
+    if (!empty($student['target_date'])) {
         $today = new DateTime();
-        $target = new DateTime($user['target_date']);
+        $target = new DateTime($student['target_date']);
         $diff = $today->diff($target);
-        $days_remaining = $diff->invert ? 0 : $diff->days;
+        $daysRemaining = $diff->invert ? 0 : $diff->days;
     }
 
-    // 4. Check Today's Active Attendance Status (Clocked in?)
-    $todayStmt = $pdo->prepare("SELECT * FROM attendance_logs WHERE user_id = :id AND log_date = CURRENT_DATE() ORDER BY id DESC LIMIT 1");
-    $todayStmt->execute(['id' => $user_id]);
-    $todayLog = $todayStmt->fetch();
+    // Task counts
+    $tStmt = $pdo->prepare('SELECT status, COUNT(*) as cnt FROM tasks WHERE user_id = :uid OR student_no = :sno GROUP BY status');
+    $tStmt->execute(['uid' => $sId, 'sno' => $sNo]);
+    $taskCounts = $tStmt->fetchAll();
 
-    $is_clocked_in = false;
-    if ($todayLog && $todayLog['status'] === 'ongoing') {
-        $is_clocked_in = true;
+    $pendingTasks = 0;
+    $completedTasks = 0;
+    foreach ($taskCounts as $tc) {
+        if ($tc['status'] === 'completed') {
+            $completedTasks += (int)$tc['cnt'];
+        } else {
+            $pendingTasks += (int)$tc['cnt'];
+        }
     }
 
-    // 5. Tasks Stats
-    $tStmt = $pdo->prepare("SELECT 
-        COUNT(CASE WHEN status != 'completed' THEN 1 END) AS pending_tasks,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_tasks
-    FROM tasks WHERE user_id = :id");
-    $tStmt->execute(['id' => $user_id]);
-    $tasksRow = $tStmt->fetch();
+    if ($todayLog) {
+        $todayLog['id'] = (int)$todayLog['id'];
+        $todayLog['user_id'] = (int)($todayLog['user_id'] ?? $sId);
+        $todayLog['total_hours'] = floatval($todayLog['total_hours'] ?? 0);
+    }
 
-    echo json_encode([
+    respond(200, [
         'success' => true,
         'stats' => [
-            'accumulated_hours'  => $accumulated_hours,
-            'required_hours'     => $required_hours,
-            'remaining_hours'    => $remaining_hours,
-            'completion_percent' => $completion_percent,
-            'days_remaining'     => $days_remaining,
-            'total_days_logged'  => $total_days,
-            'is_clocked_in'      => $is_clocked_in,
-            'pending_tasks'      => intval($tasksRow['pending_tasks'] ?? 0),
-            'completed_tasks'    => intval($tasksRow['completed_tasks'] ?? 0),
-            'today_log'          => $todayLog ?: null,
+            'accumulated_hours'  => $accumulatedHours,
+            'required_hours'     => (int)$requiredHours,
+            'remaining_hours'    => $remainingHours,
+            'completion_percent' => $completionPercent,
+            'days_remaining'     => $daysRemaining,
+            'total_days_logged'  => count($distinctDates),
+            'is_clocked_in'      => $isClockedIn,
+            'pending_tasks'      => $pendingTasks,
+            'completed_tasks'    => $completedTasks,
+            'today_log'          => $todayLog,
         ]
     ]);
-
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    respond(500, ['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
+
