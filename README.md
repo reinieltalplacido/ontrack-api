@@ -113,3 +113,4 @@ Base path: `/ontrack-api/api` (Health check: `GET /ontrack-api/` or `GET /ontrac
 - **Default Student:** Student No. `2026-0001` (`BSIT 4-A`) / Password `Password123!`
 - **Lead Admin (`BSIT 4-A`):** `admin@neust.edu.ph` (`PROF-2026-001`) / Password `AdminPassword123!`
 - **BSIT 4-E Coordinator:** `angelito.cunanan@neust.edu.ph` (`PROF-2026-005`) / Password `AdminPassword123!`
+

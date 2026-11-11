@@ -9,3 +9,4 @@ echo json_encode([
     'service' => 'ontrack-api',
     'status'  => 'running',
 ], JSON_UNESCAPED_SLASHES);
+
