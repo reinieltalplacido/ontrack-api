@@ -36,7 +36,7 @@ try {
     $diffSeconds = $timeNow->getTimestamp() - $timeIn->getTimestamp();
     $renderedHours = round(max(0, $diffSeconds / 3600), 2);
     if ($renderedHours <= 0) {
-        $renderedHours = 0.25; // demo fallback minimum for testing
+        $renderedHours = 0.02; // minimum 1 min
     }
 
     $upStmt = $pdo->prepare("UPDATE attendance_logs SET time_out = CURRENT_TIME(), total_hours = :hrs, activity_notes = :notes, status = 'completed' WHERE id = :id");

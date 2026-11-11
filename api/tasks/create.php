@@ -37,17 +37,35 @@ try {
     $sId = $student ? (int)$student['id'] : ($userId ?? 1);
     $sNo = $student ? $student['student_no'] : ($studentNo !== '' ? $studentNo : '2026-0001');
 
+    $proofUrl = null;
+    $proofFile = null;
+
+    if (!empty($input['proof_image'])) {
+        $saved = save_base64_upload(
+            (string)$input['proof_image'],
+            'tasks',
+            'task_proof_new_',
+            (string)($input['proof_file_name'] ?? '')
+        );
+        if ($saved !== null) {
+            $proofUrl = $saved['url'];
+            $proofFile = $saved['name'];
+        }
+    }
+
     $ins = $pdo->prepare(
-        "INSERT INTO tasks (user_id, student_no, title, description, deadline, priority, status)
-         VALUES (:uid, :sno, :title, :desc, :deadline, :priority, 'pending')"
+        "INSERT INTO tasks (user_id, student_no, title, description, deadline, priority, status, proof_url, proof_file)
+         VALUES (:uid, :sno, :title, :desc, :deadline, :priority, 'pending', :proof_url, :proof_file)"
     );
     $ins->execute([
-        'uid'      => $sId,
-        'sno'      => $sNo,
-        'title'    => $title,
-        'desc'     => $description !== '' ? $description : null,
-        'deadline' => $deadline,
-        'priority' => $priority,
+        'uid'        => $sId,
+        'sno'        => $sNo,
+        'title'      => $title,
+        'desc'       => $description !== '' ? $description : null,
+        'deadline'   => $deadline,
+        'priority'   => $priority,
+        'proof_url'  => $proofUrl,
+        'proof_file' => $proofFile,
     ]);
 
     $newId = (int)$pdo->lastInsertId();

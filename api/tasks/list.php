@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../common.php';
 
-$userId = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
+$userId = query_int('user_id');
 $studentNo = trim((string)($_GET['student_no'] ?? ''));
 
 if (!$userId && $studentNo === '') {
@@ -20,6 +20,9 @@ try {
     foreach ($tasks as &$task) {
         $task['id'] = (int)$task['id'];
         $task['user_id'] = (int)($task['user_id'] ?? $userId);
+        if (!empty($task['proof_url']) && empty($task['proof_file'])) {
+            $task['proof_file'] = basename($task['proof_url']);
+        }
     }
     unset($task);
 

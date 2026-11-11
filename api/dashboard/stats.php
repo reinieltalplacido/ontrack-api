@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../common.php';
 
-$userId = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
+$userId = query_int('user_id');
 $studentNo = trim((string)($_GET['student_no'] ?? ''));
 
 if (!$userId && $studentNo === '') {
@@ -37,21 +37,35 @@ try {
 
     $accumulatedHours = 0.0;
     $todayLog = null;
+    $todayOngoingLog = null;
+    $todayLatestLog = null;
     $isClockedIn = false;
     $todayStr = date('Y-m-d');
     $distinctDates = [];
+    $todayRenderedHours = 0.0;
 
     foreach ($logs as $log) {
         if ($log['status'] === 'completed') {
             $accumulatedHours += floatval($log['total_hours']);
         }
         $distinctDates[$log['log_date']] = true;
-        if ($log['log_date'] === $todayStr && $todayLog === null) {
-            $todayLog = $log;
-            if ($log['status'] === 'ongoing') {
-                $isClockedIn = true;
+        if ($log['log_date'] === $todayStr) {
+            $todayRenderedHours += floatval($log['total_hours'] ?? 0);
+            if ($log['status'] === 'ongoing' && $todayOngoingLog === null) {
+                $todayOngoingLog = $log;
+            }
+            if ($todayLatestLog === null) {
+                $todayLatestLog = $log;
             }
         }
+    }
+
+    if ($todayOngoingLog !== null) {
+        $isClockedIn = true;
+        $todayLog = $todayOngoingLog;
+    } else {
+        $isClockedIn = false;
+        $todayLog = $todayLatestLog;
     }
 
     $accumulatedHours = round($accumulatedHours, 2);

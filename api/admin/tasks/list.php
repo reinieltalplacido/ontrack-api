@@ -41,6 +41,9 @@ try {
         $t['id'] = (int)$t['id'];
         $t['user_id'] = (int)($t['user_id'] ?? 0);
         $t['student_name'] = $t['student_name'] ?? 'Assigned Student';
+        if (!empty($t['proof_url']) && empty($t['proof_file'])) {
+            $t['proof_file'] = basename($t['proof_url']);
+        }
     }
     unset($t);
 

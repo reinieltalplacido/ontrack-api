@@ -39,6 +39,7 @@ CREATE TABLE `professors` (
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
   `department` varchar(150) NOT NULL DEFAULT 'College of Information and Communications Technology',
+  `campus` varchar(150) NOT NULL DEFAULT 'NEUST - Sumacab Campus',
   `role` enum('admin','coordinator','adviser') NOT NULL DEFAULT 'admin',
   `assigned_section` varchar(100) DEFAULT 'BSIT 4-A',
   `contact_number` varchar(50) DEFAULT NULL,
@@ -61,7 +62,21 @@ INSERT INTO `professors` (`id`, `employee_id`, `full_name`, `email`, `password`,
 ('8', 'PROF-2026-008', 'Prof. Rowena Dizon', 'rowena.dizon@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Information and Communications Technology', 'coordinator', 'BSIT 4-H', '0917-555-0108', NULL, '2026-11-04 18:50:40', '2026-11-04 18:50:40'),
 ('9', 'PROF-2026-009', 'Prof. Gabriel Mercado', 'gabriel.mercado@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Information and Communications Technology', 'coordinator', 'BSIT 4-I', '0917-555-0109', NULL, '2026-11-04 18:50:40', '2026-11-04 18:50:40'),
 ('10', 'PROF-2026-010', 'Prof. Patricia Aguilar', 'patricia.aguilar@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Information and Communications Technology', 'coordinator', 'BSIT 4-J', '0917-555-0110', NULL, '2026-11-04 18:50:40', '2026-11-04 18:50:40'),
-('11', 'PROF-2026-011', 'Prof. Dennis Soriano', 'dennis.soriano@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Information and Communications Technology', 'coordinator', 'BSIT 4-K', '0917-555-0111', NULL, '2026-11-04 18:50:40', '2026-11-04 18:50:40');
+('11', 'PROF-2026-011', 'Prof. Dennis Soriano', 'dennis.soriano@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Information and Communications Technology', 'coordinator', 'BSIT 4-K', '0917-555-0111', NULL, '2026-11-04 18:50:40', '2026-11-04 18:50:40'),
+('12', 'PROF-2026-ENG1', 'Engr. Ferdinand Ramos', 'ferdinand.ramos@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Engineering', 'coordinator', 'BSCE 4-A', '0917-555-0201', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('13', 'PROF-2026-ENG2', 'Engr. Jonathan David', 'jonathan.david@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Engineering', 'coordinator', 'BSCE 4-B', '0917-555-0202', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('14', 'PROF-2026-ENG3', 'Engr. Carlos Mendoza', 'carlos.mendoza@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Engineering', 'coordinator', 'BSEE 4-A', '0917-555-0203', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('15', 'PROF-2026-ENG4', 'Engr. Arthur Dela Cruz', 'arthur.delacruz@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Engineering', 'coordinator', 'BSME 4-A', '0917-555-0204', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('16', 'PROF-2026-ARCH1', 'Ar. Danica Salazar', 'danica.salazar@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Architecture', 'coordinator', 'BSARCH 4-A', '0917-555-0301', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('17', 'PROF-2026-ARCH2', 'Ar. Mark Bautista', 'mark.bautista@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Architecture', 'coordinator', 'BSARCH 4-B', '0917-555-0302', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('18', 'PROF-2026-EDUC1', 'Dr. Elena Bautista', 'elena.bautista@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Education', 'coordinator', 'BSED 4-A', '0917-555-0401', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('19', 'PROF-2026-EDUC2', 'Prof. Teresa Morales', 'teresa.morales@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Education', 'coordinator', 'BEED 4-A', '0917-555-0402', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('20', 'PROF-2026-CRIM1', 'Prof. Ricardo Valdez', 'ricardo.valdez@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Criminology', 'coordinator', 'BSCRIM 4-A', '0917-555-0501', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('21', 'PROF-2026-CRIM2', 'Prof. Joel Castillo', 'joel.castillo@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Criminology', 'coordinator', 'BSCRIM 4-B', '0917-555-0502', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('22', 'PROF-2026-CMBT1', 'Prof. Michelle Cruz', 'michelle.cruz@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Management and Business Technology', 'coordinator', 'BSBA 4-A', '0917-555-0601', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('23', 'PROF-2026-CMBT2', 'Prof. Karen Joy Pascual', 'karen.pascual@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Management and Business Technology', 'coordinator', 'BSHM 4-A', '0917-555-0602', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('24', 'PROF-2026-CMBT3', 'Prof. Vincent Alcantara', 'vincent.alcantara@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Management and Business Technology', 'coordinator', 'BSTM 4-A', '0917-555-0603', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00'),
+('25', 'PROF-2026-CPADM1', 'Prof. Leandro Morales', 'leandro.morales@neust.edu.ph', '$2y$10$NfMZIvpf6F/zyfNVHyrKROONFWKMkmowB1unV49kaY2nBbtqmIOgG', 'College of Public Administration and Disaster Management', 'coordinator', 'BPA 4-A', '0917-555-0701', NULL, '2026-11-08 12:00:00', '2026-11-08 12:00:00');
 
 DROP TABLE IF EXISTS `students`;
 CREATE TABLE `students` (
@@ -70,15 +85,18 @@ CREATE TABLE `students` (
   `student_no` varchar(50) NOT NULL,
   `full_name` varchar(150) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
-  `course` varchar(100) NOT NULL DEFAULT 'BSIT',
-  `course_section` varchar(100) NOT NULL DEFAULT 'BSIT 4-A',
+  `course` varchar(255) NOT NULL DEFAULT 'BSIT',
+  `course_section` varchar(255) NOT NULL DEFAULT 'BSIT 4-A',
   `year_level` tinyint(3) unsigned NOT NULL DEFAULT 4,
   `school_campus` varchar(150) NOT NULL DEFAULT 'NEUST - Sumacab Campus',
   `company_name` varchar(150) NOT NULL DEFAULT 'Assigned Agency',
+  `company_address` varchar(255) DEFAULT NULL,
+  `trainer_name` varchar(150) DEFAULT NULL,
   `adviser_name` varchar(150) NOT NULL DEFAULT 'OJT Coordinator',
   `adviser_email` varchar(100) NOT NULL DEFAULT 'adviser@neust.edu.ph',
   `password` varchar(255) DEFAULT NULL,
-  `required_hours` int(11) NOT NULL DEFAULT 486,
+  `required_hours` int(11) NOT NULL DEFAULT 0,
+  `start_date` date DEFAULT NULL,
   `target_date` date DEFAULT '2026-12-15',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -100,7 +118,7 @@ CREATE TABLE `tasks` (
   `priority` enum('low','medium','high') DEFAULT 'medium',
   `status` enum('pending','in_progress','completed') DEFAULT 'pending',
   `proof_file` varchar(255) DEFAULT NULL,
-  `proof_url` varchar(255) DEFAULT NULL,
+  `proof_url` longtext DEFAULT NULL,
   `verified_at` datetime DEFAULT NULL,
   `verified_by` varchar(150) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -114,5 +132,34 @@ INSERT INTO `tasks` (`id`, `user_id`, `student_no`, `title`, `description`, `dea
 INSERT INTO `tasks` (`id`, `user_id`, `student_no`, `title`, `description`, `deadline`, `priority`, `status`, `proof_file`, `proof_url`, `verified_at`, `verified_by`, `created_at`) VALUES ('3', '2', 'SUM2023-00980', 'Frontend Layout', 'Implement responsive mobile UI components and coordinator overview cards.', '2026-11-16', 'medium', 'in_progress', NULL, NULL, NULL, NULL, '2026-11-04 21:18:47');
 INSERT INTO `tasks` (`id`, `user_id`, `student_no`, `title`, `description`, `deadline`, `priority`, `status`, `proof_file`, `proof_url`, `verified_at`, `verified_by`, `created_at`) VALUES ('4', '1', '2026-0001', 'REST API Endpoint Integration', 'Connect Angular HttpClient with XAMPP PHP backend and verify CORS response headers.', '2026-11-18', 'high', 'completed', 'api_test_results.png', 'uploads/api_test_results.png', '2026-11-04 18:30:00', 'Prof. Alexander Reyes', '2026-11-04 21:18:47');
 INSERT INTO `tasks` (`id`, `user_id`, `student_no`, `title`, `description`, `deadline`, `priority`, `status`, `proof_file`, `proof_url`, `verified_at`, `verified_by`, `created_at`) VALUES ('5', '2', 'SUM2023-00980', 'Weekly DTR Summary Report', 'Compile rendered hours logs and signed supervisor certificate.', '2026-11-20', 'medium', 'pending', NULL, NULL, NULL, NULL, '2026-11-04 21:18:47');
+
+-- --------------------------------------------------------
+-- Table structure for table `submitted_reports`
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `submitted_reports` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT UNSIGNED NOT NULL,
+  `student_no` VARCHAR(50) NOT NULL,
+  `student_name` VARCHAR(150) NOT NULL,
+  `course_section` VARCHAR(100) NOT NULL,
+  `school_campus` VARCHAR(150) DEFAULT 'NEUST - Sumacab Campus',
+  `professor_id` INT UNSIGNED NULL,
+  `adviser_name` VARCHAR(150) NULL,
+  `adviser_email` VARCHAR(100) NULL,
+  `report_title` VARCHAR(200) NOT NULL,
+  `report_type` ENUM('Time Log', 'Summary') NOT NULL DEFAULT 'Time Log',
+  `report_date` DATE NOT NULL,
+  `total_hours` DECIMAL(6,2) DEFAULT 0.00,
+  `total_days` INT DEFAULT 0,
+  `report_data` LONGTEXT NULL,
+  `status` ENUM('submitted', 'reviewed', 'approved') NOT NULL DEFAULT 'submitted',
+  `reviewed_at` DATETIME NULL,
+  `reviewed_by` VARCHAR(150) NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (`user_id`),
+  INDEX (`student_no`),
+  INDEX (`professor_id`),
+  INDEX (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

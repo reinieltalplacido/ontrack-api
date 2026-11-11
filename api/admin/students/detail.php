@@ -47,20 +47,61 @@ try {
         $lStmt = $pdo->prepare('SELECT * FROM attendance_logs WHERE student_no = :sno ORDER BY log_date DESC, time_in DESC');
         $lStmt->execute(['sno' => $sNo]);
     }
-    $logs = $lStmt->fetchAll();
+    $rawLogs = $lStmt->fetchAll();
 
     $accumulated = 0.0;
-    $distinctDays = [];
-    foreach ($logs as &$log) {
-        $log['id'] = (int)$log['id'];
-        $log['user_id'] = (int)($log['user_id'] ?? $sId);
-        $log['total_hours'] = floatval($log['total_hours'] ?? 0);
+    $groupedLogs = [];
+    foreach ($rawLogs as $log) {
+        $rowId = (int)$log['id'];
+        $d = $log['log_date'];
+        $rowHours = floatval($log['total_hours'] ?? 0);
         if ($log['status'] === 'completed') {
-            $accumulated += $log['total_hours'];
+            $accumulated += $rowHours;
         }
-        $distinctDays[$log['log_date']] = true;
+
+        if (!isset($groupedLogs[$d])) {
+            $groupedLogs[$d] = [
+                'id'             => $rowId,
+                'user_id'        => (int)($log['user_id'] ?? $sId),
+                'student_no'     => $sNo,
+                'log_date'       => $d,
+                'time_in'        => $log['time_in'],
+                'time_out'       => $log['time_out'],
+                'total_hours'    => $rowHours,
+                'latitude'       => $log['latitude'] !== null ? floatval($log['latitude']) : null,
+                'longitude'      => $log['longitude'] !== null ? floatval($log['longitude']) : null,
+                'location_name'  => $log['location_name'],
+                'photo_url'      => $log['photo_url'],
+                'activity_notes' => trim((string)($log['activity_notes'] ?? '')),
+                'status'         => $log['status'],
+                'shifts_count'   => 1,
+            ];
+        } else {
+            $groupedLogs[$d]['shifts_count']++;
+            $groupedLogs[$d]['total_hours'] = round($groupedLogs[$d]['total_hours'] + $rowHours, 2);
+            if ($log['time_in'] < $groupedLogs[$d]['time_in']) {
+                $groupedLogs[$d]['time_in'] = $log['time_in'];
+            }
+            if ($log['status'] === 'ongoing' || $groupedLogs[$d]['status'] === 'ongoing') {
+                $groupedLogs[$d]['status'] = 'ongoing';
+                $groupedLogs[$d]['time_out'] = null;
+            } else {
+                if ($log['time_out'] && (!$groupedLogs[$d]['time_out'] || $log['time_out'] > $groupedLogs[$d]['time_out'])) {
+                    $groupedLogs[$d]['time_out'] = $log['time_out'];
+                }
+            }
+            $rowNotes = trim((string)($log['activity_notes'] ?? ''));
+            if ($rowNotes !== '' && $rowNotes !== 'Duty shift completed') {
+                if ($groupedLogs[$d]['activity_notes'] === '' || $groupedLogs[$d]['activity_notes'] === 'Duty shift completed') {
+                    $groupedLogs[$d]['activity_notes'] = $rowNotes;
+                } elseif (strpos($groupedLogs[$d]['activity_notes'], $rowNotes) === false) {
+                    $groupedLogs[$d]['activity_notes'] .= ' | ' . $rowNotes;
+                }
+            }
+        }
     }
-    unset($log);
+    $logs = array_values($groupedLogs);
+    $distinctDays = array_keys($groupedLogs);
 
     $accumulated = round($accumulated, 2);
     $remaining = max(0, round($requiredHours - $accumulated, 2));
@@ -76,6 +117,14 @@ try {
         $tStmt->execute(['sno' => $sNo]);
     }
     $tasks = $tStmt->fetchAll();
+    foreach ($tasks as &$t) {
+        $t['id'] = (int)$t['id'];
+        $t['user_id'] = (int)($t['user_id'] ?? 0);
+        if (!empty($t['proof_url']) && empty($t['proof_file'])) {
+            $t['proof_file'] = basename($t['proof_url']);
+        }
+    }
+    unset($t);
 
     respond(200, [
         'success' => true,
