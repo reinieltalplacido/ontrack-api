@@ -2,6 +2,13 @@
 
 PHP 8+ REST backend for the **OnTrack OJT Monitoring** Ionic/Android application, backed by MySQL/MariaDB via PDO.
 
+## Live Deployment
+
+- **Base API URL (`apiUrl`):** `https://ontrack-api.x10.network/ontrack-api/api`
+- **Health Check:** https://ontrack-api.x10.network/ontrack-api/
+- **Coordinators JSON:** https://ontrack-api.x10.network/ontrack-api/api/coordinators.php
+- **Students JSON:** https://ontrack-api.x10.network/ontrack-api/api/students.php
+
 ## Features
 
 - Student authentication, registration (with automatic section/campus coordinator matching), profile updates, and password management
@@ -65,46 +72,47 @@ Session time zone is automatically set to `+08:00` (`Asia/Manila`).
 
 ## API Endpoints
 
-Base path: `/ontrack-api/api` (Health check: `GET /ontrack-api/` or `GET /ontrack-api/index.php`)
+- **Base URL:** `https://ontrack-api.x10.network/ontrack-api/api`
+- **Health Check:** `GET` `https://ontrack-api.x10.network/ontrack-api/`
 
 ### Directory & Lookup
-| Method | Endpoint | Description |
+| Method | Endpoint URL | Description |
 | --- | --- | --- |
-| `GET` | `/api/coordinators.php` | List all professors/coordinators (`?section=`, `?course=`, `?campus=`, `?year_level=` for lookup) |
-| `GET` | `/api/students.php` | List all students (`?student_no=`, `?id=`, `?section=`, `?professor_id=`, `?search=`) |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/coordinators.php` | List all professors/coordinators (`?section=`, `?course=`, `?campus=`, `?year_level=`) |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/students.php` | List all students (`?student_no=`, `?id=`, `?section=`, `?professor_id=`, `?search=`) |
 
 ### Student Endpoints
-| Method | Endpoint | Description |
+| Method | Endpoint URL | Description |
 | --- | --- | --- |
-| `POST` | `/api/auth/login.php` | Student or coordinator login |
-| `POST` | `/api/auth/register.php` | Student registration with automatic coordinator assignment |
-| `POST` | `/api/auth/update_profile.php` | Update student profile fields |
-| `POST` | `/api/auth/change_password.php` | Change student password |
-| `GET` | `/api/dashboard/stats.php` | Student OJT progress & hours summary |
-| `POST` | `/api/attendance/clock_in.php` | Clock in with GPS coordinates, notes, and optional photo |
-| `POST` | `/api/attendance/clock_out.php` | Clock out and compute rendered hours |
-| `GET` | `/api/attendance/history.php` | Fetch student attendance logs |
-| `GET` | `/api/tasks/list.php` | List tasks for a student |
-| `POST` | `/api/tasks/create.php` | Create a new task |
-| `POST` | `/api/tasks/update.php` | Update task status or upload proof |
-| `POST` | `/api/tasks/delete.php` | Delete a task |
-| `GET` | `/api/reports/list.php` | List student submitted reports |
-| `POST` | `/api/reports/submit.php` | Submit an OJT report with optional attachment |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/auth/login.php` | Student or coordinator login |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/auth/register.php` | Student registration with automatic coordinator assignment |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/auth/update_profile.php` | Update student profile fields |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/auth/change_password.php` | Change student password |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/dashboard/stats.php` | Student OJT progress & hours summary |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/attendance/clock_in.php` | Clock in with GPS coordinates, notes, and optional photo |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/attendance/clock_out.php` | Clock out and compute rendered hours |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/attendance/history.php` | Fetch student attendance logs |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/tasks/list.php` | List tasks for a student |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/tasks/create.php` | Create a new task |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/tasks/update.php` | Update task status or upload proof |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/tasks/delete.php` | Delete a task |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/reports/list.php` | List student submitted reports |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/reports/submit.php` | Submit an OJT report with optional attachment |
 
 ### Coordinator / Admin Endpoints
-| Method | Endpoint | Description |
+| Method | Endpoint URL | Description |
 | --- | --- | --- |
-| `POST` | `/api/admin/auth/login.php` | Coordinator/Professor login (`employee_id` or `email`) |
-| `POST` | `/api/admin/auth/register.php` | Register a new coordinator/professor account |
-| `GET` | `/api/admin/dashboard/stats.php` | Coordinator overview stats |
-| `GET` | `/api/admin/students/list.php` | Filterable student roster with duty status and hours |
-| `GET` | `/api/admin/students/detail.php` | Individual student detail view |
-| `GET` | `/api/admin/attendance/list.php` | Monitor student attendance logs |
-| `GET` | `/api/admin/tasks/list.php` | Review student tasks |
-| `POST` | `/api/admin/tasks/assign.php` | Assign task to student(s) |
-| `POST` | `/api/admin/tasks/verify.php` | Verify submitted task proof |
-| `GET` | `/api/admin/reports/list.php` | List student report submissions |
-| `POST` | `/api/admin/reports/review.php` | Mark report as reviewed/approved |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/admin/auth/login.php` | Coordinator/Professor login (`employee_id` or `email`) |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/admin/auth/register.php` | Register a new coordinator/professor account |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/admin/dashboard/stats.php` | Coordinator overview stats |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/admin/students/list.php` | Filterable student roster with duty status and hours |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/admin/students/detail.php` | Individual student detail view |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/admin/attendance/list.php` | Monitor student attendance logs |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/admin/tasks/list.php` | Review student tasks |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/admin/tasks/assign.php` | Assign task to student(s) |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/admin/tasks/verify.php` | Verify submitted task proof |
+| `GET` | `https://ontrack-api.x10.network/ontrack-api/api/admin/reports/list.php` | List student report submissions |
+| `POST` | `https://ontrack-api.x10.network/ontrack-api/api/admin/reports/review.php` | Mark report as reviewed/approved |
 
 ## Seeded Demo Accounts (`ontrack_db.sql`)
 
