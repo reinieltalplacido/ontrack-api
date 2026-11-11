@@ -1,7 +1,0 @@
-.git
-.gitignore
-.dockerignore
-Dockerfile
-ontrack_db.sql
-uploads/*
-!uploads/.gitkeep
